@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initDatabase } from './_db';
+// @ts-ignore
+import { initDatabase } from './_db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

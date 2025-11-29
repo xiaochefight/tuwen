@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { verifyAccessKey, updateAccessKeyUsage, logUsage } from './_db';
+// @ts-ignore
+import { verifyAccessKey, updateAccessKeyUsage, logUsage } from './_db.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS Headers
