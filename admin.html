@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密钥管理后台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <h1 class="text-3xl font-bold mb-8 text-indigo-600">管理后台</h1>
+
+        <!-- Auth Section -->
+        <div id="authSection" class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 max-w-md mx-auto mt-20">
+            <label class="block mb-2 font-bold text-gray-700">管理员密码</label>
+            <input type="password" id="adminPassword" class="w-full p-3 border rounded-lg mb-4" placeholder="输入密码">
+            <button onclick="login()" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition">登录</button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="hidden space-y-8">
+            
+            <!-- Generate Key -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">🔑 生成新密钥</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">备注名称</label>
+                        <input type="text" id="keyName" class="w-full p-2 border rounded-lg" placeholder="例如: 张三">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">最大使用次数</label>
+                        <input type="number" id="maxUses" class="w-full p-2 border rounded-lg" value="100">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">有效期 (天)</label>
+                        <input type="number" id="expiresIn" class="w-full p-2 border rounded-lg" value="30">
+                    </div>
+                    <button onclick="generateKey()" class="bg-indigo-600 text-white p-2 rounded-lg font-bold hover:bg-indigo-700 h-[42px]">生成密钥</button>
+                </div>
+                <div id="newKeyResult" class="mt-4 hidden p-4 bg-green-50 text-green-800 rounded-lg border border-green-200 break-all"></div>
+            </div>
+
+            <!-- Key List -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 overflow-x-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">密钥列表</h2>
+                    <button onclick="loadKeys()" class="text-indigo-600 text-sm hover:underline">刷新列表</button>
+                </div>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-xs text-gray-500 border-b">
+                            <th class="py-2 px-2">ID</th>
+                            <th class="py-2 px-2">名称</th>
+                            <th class="py-2 px-2">密钥 (点击复制)</th>
+                            <th class="py-2 px-2">使用情况</th>
+                            <th class="py-2 px-2">过期时间</th>
+                            <th class="py-2 px-2">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="keysTableBody" class="text-sm">
+                        <!-- JS renders rows here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Logs Modal -->
+            <div id="logsModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+                <div class="bg-white rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl">
+                    <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                        <h3 class="font-bold">使用日志</h3>
+                        <button onclick="closeLogs()" class="text-gray-500 hover:text-red-500">✕</button>
+                    </div>
+                    <div class="flex-1 overflow-auto p-4">
+                        <table class="w-full text-left">
+                            <thead class="text-xs text-gray-500 border-b sticky top-0 bg-white">
+                                <tr>
+                                    <th class="pb-2">时间</th>
+                                    <th class="pb-2">IP</th>
+                                    <th class="pb-2">状态</th>
+                                    <th class="pb-2">内容摘要</th>
+                                    <th class="pb-2">错误信息</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody" class="text-xs font-mono"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let adminPwd = '';
+
+        function login() {
+            adminPwd = document.getElementById('adminPassword').value;
+            if(!adminPwd) return alert('请输入密码');
+            loadKeys().then(success => {
+                if(success) {
+                    document.getElementById('authSection').classList.add('hidden');
+                    document.getElementById('dashboardSection').classList.remove('hidden');
+                } else {
+                    alert('密码错误或连接失败');
+                }
+            });
+        }
+
+        async function api(endpoint, method = 'GET', body = null) {
+            const headers = {
+                'x-admin-password': adminPwd,
+                'Content-Type': 'application/json'
+            };
+            const config = { method, headers };
+            if (body) config.body = JSON.stringify(body);
+            
+            try {
+                const res = await fetch(endpoint, config);
+                if(res.status === 401) return null;
+                return await res.json();
+            } catch(e) {
+                console.error(e);
+                return null;
+            }
+        }
+
+        async function loadKeys() {
+            const keys = await api('/api/admin/list-keys');
+            if(!keys) return false;
+
+            const tbody = document.getElementById('keysTableBody');
+            tbody.innerHTML = keys.map(k => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 px-2 text-gray-400">#${k.id}</td>
+                    <td class="py-3 px-2 font-bold">${k.name}</td>
+                    <td class="py-3 px-2">
+                        <button onclick="copyToClipboard('${k.key_code}')" class="font-mono bg-gray-100 px-2 py-1 rounded text-xs hover:bg-gray-200 transition">
+                            ${k.key_code.substring(0, 8)}...
+                        </button>
+                    </td>
+                    <td class="py-3 px-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-1 w-24">
+                            <div class="bg-indigo-600 h-2 rounded-full" style="width: ${(k.used_count/k.max_uses)*100}%"></div>
+                        </div>
+                        <span class="text-xs text-gray-500">${k.used_count} / ${k.max_uses}</span>
+                    </td>
+                    <td class="py-3 px-2 text-gray-500">
+                        ${k.expires_at ? new Date(k.expires_at).toLocaleDateString() : '永久'}
+                    </td>
+                    <td class="py-3 px-2">
+                        <button onclick="viewLogs(${k.id})" class="text-xs text-indigo-600 hover:underline">日志</button>
+                    </td>
+                </tr>
+            `).join('');
+            return true;
+        }
+
+        async function generateKey() {
+            const name = document.getElementById('keyName').value;
+            const maxUses = document.getElementById('maxUses').value;
+            const expiresInDays = document.getElementById('expiresIn').value;
+
+            if(!name) return alert('请输入名称');
+
+            const res = await api('/api/admin/generate-key', 'POST', { name, maxUses, expiresInDays });
+            if(res && res.key_code) {
+                const resultDiv = document.getElementById('newKeyResult');
+                resultDiv.classList.remove('hidden');
+                resultDiv.innerHTML = `
+                    <div class="font-bold text-sm mb-1">创建成功！</div>
+                    <div>密钥: <span class="font-mono font-bold bg-white px-2 select-all">${res.key_code}</span></div>
+                    <div class="text-xs mt-1 opacity-75">请立即复制，密钥仅完整显示一次。</div>
+                `;
+                loadKeys();
+            } else {
+                alert('创建失败: ' + (res?.error || 'Unknown error'));
+            }
+        }
+
+        async function viewLogs(keyId) {
+            const logs = await api(`/api/admin/key-logs?keyId=${keyId}`);
+            if(logs) {
+                const tbody = document.getElementById('logsTableBody');
+                tbody.innerHTML = logs.map(l => `
+                    <tr class="border-b">
+                        <td class="py-2 text-gray-500">${new Date(l.created_at).toLocaleString()}</td>
+                        <td class="py-2 text-gray-500">${l.user_ip}</td>
+                        <td class="py-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] ${l.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${l.success ? 'SUCCESS' : 'FAIL'}
+                            </span>
+                        </td>
+                        <td class="py-2 truncate max-w-[200px]" title="${l.request_text}">${l.request_text}</td>
+                        <td class="py-2 text-red-500 truncate max-w-[150px]">${l.error_msg || '-'}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('logsModal').classList.remove('hidden');
+            }
+        }
+
+        function closeLogs() {
+            document.getElementById('logsModal').classList.add('hidden');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('密钥已复制: ' + text);
+            });
+        }
+    </script>
+</body>
+</html>
