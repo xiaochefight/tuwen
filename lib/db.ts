@@ -1,8 +1,16 @@
 import { createClient } from '@vercel/postgres';
 
-// 通用查询助手函数（自动处理连接和断开）
+// 通用查询助手函数（增强版：自动兼容各种连接变量）
 async function query(text: string, params?: any[]) {
-  const client = createClient();
+  // 核心修改：手动指定连接字符串，优先用 NON_POOLING，如果没有则用通用的 POSTGRES_URL
+  const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+
+  if (!connectionString) {
+    throw new Error("数据库连接失败：环境变量中未找到 POSTGRES_URL。请确保在 Vercel Storage 中已连接数据库。");
+  }
+
+  const client = createClient({ connectionString });
+  
   await client.connect();
   try {
     const result = await client.query(text, params);
@@ -11,7 +19,6 @@ async function query(text: string, params?: any[]) {
     await client.end();
   }
 }
-
 // 1. 初始化数据库表
 export async function initDatabase() {
   const createTableQuery = `
