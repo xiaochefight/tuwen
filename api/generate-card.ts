@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { verifyAccessKey, incrementKeyUsage, logUsage } from '../lib/db.js';
+import { verifyAccessKey, updateAccessKeyUsage, logUsage } from './_db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS Headers
@@ -105,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const resultData = JSON.parse(text);
 
     // 5. Update Usage & Log
-    await incrementKeyUsage(keyId);
+    await updateAccessKeyUsage(keyId);
     await logUsage(keyId, ip, inputText || '', true, null);
 
     // 6. Return Data
