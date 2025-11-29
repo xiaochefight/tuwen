@@ -2,20 +2,23 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@vercel/postgres';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 1. 获取连接字符串
+  // 1. 检查环境变量
   const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+  
   if (!connectionString) {
-    return res.status(500).json({ error: '环境变量缺失: 未找到 POSTGRES_URL' });
+    return res.status(500).json({ 
+      error: '配置错误', 
+      details: '未找到 POSTGRES_URL 环境变量' 
+    });
   }
 
-  // 2. 创建客户端
   const client = createClient({ connectionString });
 
   try {
-    // 3. 连接数据库
+    // 2. 尝试连接
     await client.connect();
 
-    // 4. 执行建表 SQL
+    // 3. 执行建表
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS access_keys (
         id SERIAL PRIMARY KEY,
@@ -40,20 +43,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     await client.query(createTableQuery);
 
-    // 5. 成功返回
-    return res.status(200).json({ 
-      success: true, 
-      message: '数据库初始化成功 (Standalone Mode)' 
-    });
+    return res.status(200).json({ success: true, message: '数据库初始化成功' });
 
-  } catch (error) {
-    console.error('初始化错误:', error);
+  } catch (error: any) {
+    console.error('DB Error:', error);
+    // 🔍 这里是关键：展开显示具体错误信息
     return res.status(500).json({ 
-      error: '初始化失败', 
-      details: String(error) 
+      status: 'Error',
+      message: error.message || '未知错误',
+      code: error.code || 'No Code',
+      detail: JSON.stringify(error)
     });
   } finally {
-    // 6. 必须关闭连接
     await client.end();
   }
 }
