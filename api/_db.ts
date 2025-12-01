@@ -52,9 +52,9 @@ export async function verifyAccessKey(keyCode: string) {
     [keyCode]
   );
   const key = result.rows[0];
-  if (!key) throw new Error('无效的访问密钥');
-  if (key.expires_at && new Date(key.expires_at) < new Date()) throw new Error('密钥已过期');
-  if (key.max_uses !== -1 && key.used_count >= key.max_uses) throw new Error('密钥使用次数已耗尽');
+  if (!key) throw new Error('无效的访问密钥,请联系管理员chex490@gmail.com');
+  if (key.expires_at && new Date(key.expires_at) < new Date()) throw new Error('密钥已过期,请联系管理员chex490@gmail.com');
+  if (key.max_uses !== -1 && key.used_count >= key.max_uses) throw new Error('密钥使用次数已耗尽,请联系管理员chex490@gmail.com');
   return key;
 }
 
