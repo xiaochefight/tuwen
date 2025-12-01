@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             type: Type.OBJECT,
             properties: {
               title: { type: Type.STRING, description: "分段小标题，吸引人。" },
-              content: { type: Type.STRING, description: "该段落的详细内容，必须丰富详实，字数控制在150-200字左右，确保填满一张手机屏幕的阅读区域，不要只有一两句话。" }
+              content: { type: Type.STRING, description: "该段落的详细内容，必须丰富详实，字数控制在100-150字左右，确保填满一张手机屏幕的阅读区域，不要只有一两句话。" }
             },
             required: ["title", "content"]
           },
@@ -87,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       结构要求：
       1. **封面**：需要一个爆款标题，一段简介，和3-4个短亮点。
-      2. **详细页（Sections）**：将内容拆解为4-5个逻辑清晰的板块。每个板块必须有非常丰富的内容（150-200字），适合制作成一张信息量充足的图片，严禁内容空洞，如果原文内容不足，请根据主题进行合理的扩充和润色，使其丰满。
+      2. **详细页（Sections）**：将内容拆解为4-5个逻辑清晰的板块。每个板块必须有非常丰富的内容（100-150字），适合制作成一张信息量充足的图片，严禁内容空洞，如果原文内容不足，请根据主题进行合理的扩充和润色，使其丰满。
       
       请务必使用中文（简体）输出所有内容。
       
